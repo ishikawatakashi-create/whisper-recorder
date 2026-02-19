@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>音声入力ツール</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: { DEFAULT: '#3B82F6', hover: '#2563EB' },
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+
+        /* Sidebar nav item active */
+        .nav-item.active {
+            background-color: #f0f0f0;
+            font-weight: 500;
+        }
+
+        .nav-item {
+            transition: background-color 0.15s ease;
+        }
+
+        .nav-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* Page visibility */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Card hover */
+        .stat-card {
+            transition: box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Referral card gradient */
+        .referral-card {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        .affiliate-card {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+        }
+
+        /* Scrollbar style */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 99px;
+        }
+
+        /* Recording indicator */
+        @keyframes pulse-rec {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        #recording-bar {
+            display: none;
+            animation: pulse-rec 1s ease-in-out infinite;
+        }
+
+        #recording-bar.active {
+            display: flex;
+        }
+
+        /* Donut circle */
+        .donut-ring {
+            --pct: 0;
+            background: conic-gradient(#e5e7eb calc(var(--pct) * 1%), #e5e7eb 0%);
+            border-radius: 50%;
+        }
+
+        /* History items hover */
+        .history-item:hover {
+            background-color: #f9fafb;
+        }
+
+        /* Settings panel */
+        .settings-list-item {
+            transition: background-color 0.15s;
+        }
+
+        .settings-list-item:hover,
+        .settings-list-item.active {
+            background-color: #f3f4f6;
+        }
+
+        .settings-list-item.active {
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body class="bg-white text-gray-800 antialiased select-none h-screen flex overflow-hidden">
+
+    <!-- Recording indicator overlay -->
+    <div id="recording-bar" class="fixed top-0 left-0 right-0 z-50 items-center justify-center gap-2
+           bg-red-500 text-white text-xs font-medium py-1.5">
+        <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
+        録音中... Right Alt を離すと文字起こしします
+    </div>
+
+    <!-- ============================
+       SIDEBAR
+  ============================ -->
+    <aside class="w-24 flex flex-col bg-[#f7f7f7] border-r border-gray-200 shrink-0 h-full">
+        <!-- Logo -->
+        <div class="px-3 pt-5 pb-4">
+            <div class="flex items-center gap-1.5">
+                <div class="w-5 h-5 bg-black rounded-sm flex items-center justify-center">
+                    <i class="fa-solid fa-microphone text-white text-[9px]"></i>
+                </div>
+                <span class="text-sm font-semibold tracking-tight text-gray-900">Whisper</span>
+            </div>
+            <span
+                class="inline-block mt-1 text-[9px] font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">Pro
+                Trial</span>
+        </div>
+
+        <!-- Nav items -->
+        <nav class="flex-1 px-2 space-y-0.5">
+            <button onclick="navigate('home')" id="nav-home"
+                class="nav-item active w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
+                <i class="fa-regular fa-house w-4 text-center text-gray-500 text-xs"></i>
+                <span class="text-xs">ホーム</span>
+            </button>
+            <button onclick="navigate('history')" id="nav-history"
+                class="nav-item w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
+                <i class="fa-regular fa-clock-rotate-left w-4 text-center text-gray-500 text-xs"></i>
+                <span class="text-xs">履歴</span>
+            </button>
+            <button onclick="navigate('dictionary')" id="nav-dictionary"
+                class="nav-item w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
+                <i class="fa-regular fa-book w-4 text-center text-gray-500 text-xs"></i>
+                <span class="text-xs">辞書</span>
+            </button>
+            <button onclick="navigate('settings')" id="nav-settings"
+                class="nav-item w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
+                <i class="fa-regular fa-gear w-4 text-center text-gray-500 text-xs"></i>
+                <span class="text-xs">設定</span>
+            </button>
+        </nav>
+
+        <!-- Upgrade section -->
+        <div class="px-2 pb-4">
+            <div class="text-[10px] text-gray-500 font-medium px-1 mb-0.5">Pro Trial</div>
+            <div class="text-[10px] font-semibold text-gray-800 px-1 mb-1">4/30 日使用済み</div>
+            <p class="text-[10px] text-gray-500 px-1 mb-2 leading-tight">
+                トライアルが終了する前にPro版にアップグレード
+            </p>
+            <button
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold rounded-lg py-1.5 transition-colors">
+                アップグレード
+            </button>
+
+            <!-- Bottom icons -->
+            <div class="flex items-center justify-around mt-3 px-1">
+                <button class="text-gray-400 hover:text-gray-600 transition-colors" title="チャット">
+                    <i class="fa-regular fa-comment-dots text-sm"></i>
+                </button>
+                <button onclick="navigate('settings')" class="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="設定">
+                    <i class="fa-regular fa-gear text-sm"></i>
+                </button>
+                <button class="text-gray-400 hover:text-gray-600 transition-colors" title="アカウント">
+                    <i class="fa-regular fa-circle-user text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================
+       MAIN CONTENT
+  ============================ -->
+    <main class="flex-1 overflow-y-auto bg-white">
+
+        <!-- ===== HOME PAGE ===== -->
+        <div id="page-home" class="page active px-8 py-6 max-w-3xl">
+            <!-- Header -->
+            <div class="flex items-start justify-between mb-6">
+                <div>
+                    <h1 class="text-2xl font-semibold text-gray-900 leading-tight">自然に話し、完璧に書く - どのアプリでも</h1>
+                    <p class="text-sm text-gray-500 mt-1">
+                        キーを押し続けて <kbd
+                            class="bg-gray-100 border border-gray-200 rounded px-1 py-0.5 text-xs font-mono">Right
+                            Alt</kbd> 話し、放して生声テキストを挿入します。
+                    </p>
+                </div>
+                <button class="text-xs text-blue-500 hover:underline whitespace-nowrap mt-1">人気の使用例 ›</button>
+            </div>
+
+            <!-- Stats card -->
+            <div class="border border-gray-200 rounded-xl p-5 mb-4 stat-card">
+                <div class="grid grid-cols-3 gap-4">
+                    <!-- Left: Personalize % -->
+                    <div class="col-span-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-1.5 mb-0.5">
+                                <i class="fa-regular fa-user text-gray-400 text-xs"></i>
+                                <span class="text-xl font-bold text-gray-900">0%</span>
+                            </div>
+                            <p class="text-[11px] text-gray-400">全体のパーソナライズ</p>
+                        </div>
+                        <div class="mt-3">
+                            <button
+                                class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors">
+                                レポートを見る
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-blue-500 hover:underline cursor-pointer mt-3">
+                            <i class="fa-regular fa-lock text-xs mr-1"></i>あなたのデータはプライベートに置かれます
+                        </p>
+                    </div>
+
+                    <!-- Center: Donut chart placeholder -->
+                    <div class="col-span-1 flex items-center justify-center">
+                        <div
+                            class="w-20 h-20 rounded-full border-[6px] border-gray-100 flex items-center justify-center">
+                            <i class="fa-regular fa-microphone text-gray-300 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Right: 4 mini stats -->
+                    <div class="col-span-1 grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="flex items-center gap-1 mb-0.5">
+                                <i class="fa-regular fa-clock text-gray-400 text-[10px]"></i>
+                                <span class="text-base font-bold text-gray-900">0 <span
+                                        class="text-xs font-normal text-gray-400">min</span></span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 leading-tight">合計音声入力期間</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1 mb-0.5">
+                                <i class="fa-regular fa-star text-gray-400 text-[10px]"></i>
+                                <span class="text-base font-bold text-gray-900">98 <span
+                                        class="text-xs font-normal text-gray-400">語録</span></span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 leading-tight">音声入力された単語</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1 mb-0.5">
+                                <i class="fa-regular fa-hourglass text-gray-400 text-[10px]"></i>
+                                <span class="text-base font-bold text-gray-900">2 <span
+                                        class="text-xs font-normal text-gray-400">min</span></span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 leading-tight">節約した時間</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1 mb-0.5">
+                                <i class="fa-regular fa-gauge-high text-gray-400 text-[10px]"></i>
+                                <span class="text-base font-bold text-gray-900">194 <span
+                                        class="text-xs font-normal text-gray-400">WPM</span></span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 leading-tight">平均音声入力速度</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Promo cards row -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <!-- Referral card -->
+                <div class="referral-card rounded-xl p-4 flex items-center gap-3">
+                    <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-users text-blue-600 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800 mb-0.5">友達を紹介</p>
+                        <p class="text-[11px] text-gray-600">
+                            ゲット <span class="font-bold text-blue-700">$5 クレジット</span> Whisper Proの招待ごとに。
+                        </p>
+                        <button
+                            class="mt-1.5 text-[11px] border border-blue-300 bg-white text-blue-600 rounded-lg px-2.5 py-1 hover:bg-blue-50 transition-colors">
+                            友達を招待
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Affiliate card -->
+                <div class="affiliate-card rounded-xl p-4 flex items-center gap-3">
+                    <div class="w-12 h-12 bg-pink-200 rounded-full flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-hand-holding-dollar text-pink-600 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800 mb-0.5">アフィリエイトプログラム</p>
+                        <p class="text-[11px] text-gray-600">
+                            稼ぐ <span class="font-bold text-pink-700">25%</span> Whisperを共有することで得られる魅力的な報酬。
+                        </p>
+                        <button
+                            class="mt-1.5 text-[11px] border border-pink-300 bg-white text-pink-600 rounded-lg px-2.5 py-1 hover:bg-pink-50 transition-colors">
+                            今すぐ参加
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback section -->
+            <div>
+                <h2 class="text-sm font-semibold text-gray-700 mb-2">フィードバックを送信</h2>
+                <div class="border border-gray-200 rounded-xl p-4">
+                    <!-- Transcript selector -->
+                    <div class="flex items-center justify-between mb-2">
+                        <button class="text-[11px] text-gray-600 flex items-center gap-1 hover:text-gray-800">
+                            <i class="fa-regular fa-file-lines text-gray-400"></i>
+                            最後のトランスクリプト の
+                            <i class="fa-solid fa-chevron-down text-gray-400 text-[9px]"></i>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Transcript preview -->
+                    <div class="bg-gray-50 rounded-lg px-3 py-2 mb-3">
+                        <p class="text-xs text-gray-500 italic">Mo...</p>
+                    </div>
+
+                    <!-- Feedback textarea -->
+                    <textarea
+                        class="w-full text-xs text-gray-500 border-0 focus:outline-none resize-none bg-transparent"
+                        rows="3" placeholder="このトランスクリプトはどう改善できますか？ヒント：時間を節約するためにフィードバックを話すことができます。"></textarea>
+
+                    <!-- Submit -->
+                    <div class="flex justify-end mt-2">
+                        <button class="text-xs bg-gray-100 text-gray-400 rounded-lg px-3 py-1.5 cursor-not-allowed">
+                            フィードバックを送信
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Version footer -->
+            <p class="text-[10px] text-gray-300 mt-6 text-center">
+                バージョン v0.5.0 &nbsp;
+                <a href="#" class="hover:underline">設定を表示</a>
+            </p>
+        </div>
+
+        <!-- ===== HISTORY PAGE ===== -->
+        <div id="page-history" class="page px-8 py-6 max-w-3xl">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-5">
+                <h1 class="text-xl font-semibold text-gray-900">履歴</h1>
+                <button class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-ellipsis text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Privacy info -->
+            <div class="mb-4 space-y-3">
+                <div class="flex items-start gap-3">
+                    <i class="fa-regular fa-database text-gray-400 mt-0.5 text-sm"></i>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <p class="text-sm font-medium text-gray-700">履歴を保持</p>
+                            <select
+                                class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 bg-white focus:outline-none">
+                                <option>永遠に</option>
+                                <option>30日間</option>
+                                <option>7日間</option>
+                            </select>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-0.5">デバイスに音声入力履歴をどのくらい保持したいですか？</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i class="fa-regular fa-shield-halved text-gray-400 mt-0.5 text-sm"></i>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">データはプライベートに保たれます</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5">
+                            音声入力はプライベートで、データは保存されません。デバイスにのみ保存され、他の場所からアクセスすることはできません。</p>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-xs font-medium text-gray-400 mb-2">今日</p>
+
+            <!-- History items -->
+            <div class="space-y-0 divide-y divide-gray-100">
+                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:15 PM</span>
+                        <p class="text-xs text-gray-700 leading-relaxed line-clamp-3">
+                            Mount Fuji, the highest peak in Japan, is a sacred presence for the Japanese people.
+                            Since ancient times, it has exerted a profound influence on the Japanese view of nature as
+                            an
+                            "object of faith." Due to its history of repeated volcanic activity, the mountain became a
+                            focal point for "Yohai"—the practice of worshipping the summit from afar by looking up from
+                            the foot of the mountain.
+                        </p>
+                    </div>
+                </div>
+                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:15 PM</span>
+                        <p class="text-xs text-gray-400 italic">音声が落ちます... <i
+                                class="fa-regular fa-circle-info text-[10px]"></i></p>
+                    </div>
+                </div>
+                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:15 PM</span>
+                        <p class="text-xs text-blue-600 leading-relaxed line-clamp-3">
+                            Dear Anna, I am writing to inform you that my contact information has changed.
+                            My new phone number is (408) 123 4567. Please update your records accordingly to ensure
+                            we can stay in touch. Thank you, and please let me know if you have any questions.
+                            Best regards, Jack
+                        </p>
+                    </div>
+                </div>
+                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:14 PM</span>
+                        <p class="text-xs text-gray-700">How about you?</p>
+                    </div>
+                </div>
+                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:14 PM</span>
+                        <p class="text-xs text-blue-600">How about we meet tomorrow at 3 p.m. for a coffee meeting?</p>
+                    </div>
+                </div>
+                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:14 PM</span>
+                        <p class="text-xs text-blue-600">Just a quick note to let you know that my new phone number is
+                            (408) 123-1067. Thanks, Jack</p>
+                    </div>
+                </div>
+                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
+                    <div class="flex items-start gap-2">
+                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:13 PM</span>
+                        <p class="text-xs text-blue-600">My Shopping List: 1. Bananas 2. Oat milk 3. Dark chocolate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== DICTIONARY PAGE ===== -->
+        <div id="page-dictionary" class="page px-8 py-6 max-w-3xl">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-5">
+                <h1 class="text-xl font-semibold text-gray-900">辞書</h1>
+                <button
+                    class="bg-gray-900 hover:bg-gray-700 text-white text-xs font-medium rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                    新しい単語
+                </button>
+            </div>
+
+            <!-- Filter tabs + search -->
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-1.5">
+                    <button
+                        class="text-xs border border-gray-200 rounded-full px-3 py-1 bg-gray-900 text-white font-medium">すべて</button>
+                    <button
+                        class="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-500 hover:bg-gray-50 flex items-center gap-1">
+                        <i class="fa-solid fa-wand-magic-sparkles text-[9px]"></i> 自動追加
+                    </button>
+                    <button
+                        class="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-500 hover:bg-gray-50 flex items-center gap-1">
+                        <i class="fa-regular fa-pencil text-[9px]"></i> 手動追加
+                    </button>
+                </div>
+                <button class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-regular fa-magnifying-glass text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Empty state -->
+            <div class="flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                    <i class="fa-regular fa-book-open text-gray-300 text-xl"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-600 mb-1">まだ単語がありません</p>
+                <p class="text-[11px] text-gray-400 max-w-xs leading-relaxed">
+                    Whisperは、あなたのユニークな名前や単語を記憶し、環境から自動的に学習したり、手動でお知らせします。
+                </p>
+            </div>
+        </div>
+
+        <!-- ===== SETTINGS PAGE ===== -->
+        <div id="page-settings" class="page">
+            <div class="flex h-full">
+                <!-- Settings sidebar -->
+                <div class="w-48 border-r border-gray-100 py-6 px-3 flex flex-col gap-0.5 shrink-0">
+                    <button
+                        class="settings-list-item active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
+                        onclick="switchSettings(this, 'account')">
+                        <i class="fa-regular fa-circle-user text-gray-400 w-4 text-center text-sm"></i>
+                        アカウント
+                    </button>
+                    <button
+                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
+                        onclick="switchSettings(this, 'prefs')">
+                        <i class="fa-regular fa-gear text-gray-400 w-4 text-center text-sm"></i>
+                        設定
+                    </button>
+                    <button
+                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
+                        onclick="switchSettings(this, 'personalize')">
+                        <i class="fa-regular fa-sliders text-gray-400 w-4 text-center text-sm"></i>
+                        パーソナライズ
+                    </button>
+                    <button
+                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
+                        onclick="switchSettings(this, 'about')">
+                        <i class="fa-regular fa-circle-info text-gray-400 w-4 text-center text-sm"></i>
+                        について
+                    </button>
+                    <div class="h-px bg-gray-100 my-1"></div>
+                    <button
+                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700">
+                        <i class="fa-regular fa-book text-gray-400 w-4 text-center text-sm"></i>
+                        ヘルプセンター
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-300 ml-auto"></i>
+                    </button>
+                    <button
+                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700">
+                        <i class="fa-regular fa-file-lines text-gray-400 w-4 text-center text-sm"></i>
+                        リリースノート
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-300 ml-auto"></i>
+                    </button>
+                </div>
+
+                <!-- Settings content -->
+                <div class="flex-1 px-8 py-6 overflow-y-auto">
+                    <!-- Account panel -->
+                    <div id="settings-account" class="settings-panel">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">アカウント</h2>
+
+                        <div class="space-y-5">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-1">メール</p>
+                                <p class="text-sm text-gray-500">user@example.com</p>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700 mb-0.5">サブスクリプション</p>
+                                    <p class="text-sm text-gray-400">Pro Trial</p>
+                                </div>
+                                <button
+                                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl px-4 py-2 transition-colors">
+                                    アップグレード
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700">ギフトカード</p>
+                                </div>
+                                <button
+                                    class="border border-gray-200 text-sm text-gray-600 rounded-xl px-4 py-1.5 hover:bg-gray-50 transition-colors">
+                                    購入
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Other panels (hidden by default) -->
+                    <div id="settings-prefs" class="settings-panel hidden">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">設定</h2>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700">起動時に開く</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">アプリ起動時に自動的に開始します</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" checked>
+                                    <div
+                                        class="w-9 h-5 bg-blue-600 peer-checked:bg-blue-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4">
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700">ショートカットキー</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">音声入力を開始するキー</p>
+                                </div>
+                                <kbd
+                                    class="bg-gray-100 border border-gray-200 rounded-lg px-2 py-1 text-xs font-mono text-gray-600">Right
+                                    Alt</kbd>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700">言語</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">音声認識の言語</p>
+                                </div>
+                                <select
+                                    class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                    <option>日本語</option>
+                                    <option>English</option>
+                                    <option>中文</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="settings-personalize" class="settings-panel hidden">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">パーソナライズ</h2>
+                        <p class="text-sm text-gray-500">カスタム辞書や音声プロファイルを活用して認識精度を上げましょう。</p>
+                    </div>
+
+                    <div id="settings-about" class="settings-panel hidden">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">について</h2>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-xs text-gray-400">バージョン</p>
+                                <p class="text-sm text-gray-700">v0.5.0</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-400">エンジン</p>
+                                <p class="text-sm text-gray-700">Whisper (OpenAI)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Eel JS bridge -->
+    <script src="/eel.js"></script>
+
+    <script>
+        // ============================================================
+        // Navigation
+        // ============================================================
+        const PAGES = ['home', 'history', 'dictionary', 'settings'];
+
+        function navigate(page) {
+            // Update nav active state
+            PAGES.forEach(p => {
+                const btn = document.getElementById('nav-' + p);
+                if (btn) btn.classList.toggle('active', p === page);
+            });
+
+            // Show/hide pages
+            PAGES.forEach(p => {
+                const el = document.getElementById('page-' + p);
+                if (el) el.classList.toggle('active', p === page);
+            });
+
+            // Call Python via Eel
+            if (typeof eel !== 'undefined') {
+                eel.on_navigate(page)(function (result) {
+                    console.log('[Eel] on_navigate response:', result);
+                });
+            } else {
+                console.log('[Mock] navigate to:', page);
+            }
+        }
+
+        // ============================================================
+        // Settings sub-navigation
+        // ============================================================
+        function switchSettings(btn, panel) {
+            // Active state on sidebar buttons
+            document.querySelectorAll('.settings-list-item').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Show/hide panels
+            document.querySelectorAll('.settings-panel').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById('settings-' + panel);
+            if (target) target.classList.remove('hidden');
+        }
+
+        // ============================================================
+        // History item selection
+        // ============================================================
+        function selectHistory(el) {
+            document.querySelectorAll('.history-item').forEach(i => i.classList.remove('bg-blue-50'));
+            el.classList.add('bg-blue-50');
+
+            if (typeof eel !== 'undefined') {
+                const text = el.querySelector('p')?.innerText || '';
+                eel.on_history_select(text)(function (result) {
+                    console.log('[Eel] on_history_select response:', result);
+                });
+            }
+        }
+
+        // ============================================================
+        // Python → JS : toast notification
+        // ============================================================
+        eel.expose(js_show_notification);
+        function js_show_notification(message) {
+            const toast = document.createElement('div');
+            toast.className = [
+                'fixed bottom-4 right-4 bg-gray-900 text-white text-xs rounded-xl',
+                'px-4 py-2.5 shadow-lg z-50 transition-opacity duration-300'
+            ].join(' ');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2800);
+        }
+
+        // ============================================================
+        // Python → JS : 録音状態インジケーター
+        // ============================================================
+        eel.expose(js_set_recording_state);
+        function js_set_recording_state(isRecording) {
+            const bar = document.getElementById('recording-bar');
+            if (isRecording) {
+                bar.classList.add('active');
+            } else {
+                bar.classList.remove('active');
+            }
+        }
+
+        // ============================================================
+        // Python → JS : 履歴に1件追加
+        // ============================================================
+        eel.expose(js_add_history);
+        function js_add_history(text) {
+            // 履歴ページに動的に追加
+            const container = document.querySelector('#page-history .divide-y');
+            if (!container) return;
+            const now = new Date();
+            const hm = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            const item = document.createElement('div');
+            item.className = 'history-item py-2.5 px-2 rounded-lg cursor-pointer';
+            item.onclick = function () { selectHistory(this); };
+            item.innerHTML = `
+        <div class="flex items-start gap-2">
+          <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">${hm}</span>
+          <p class="text-xs text-gray-700 leading-relaxed">${text}</p>
+        </div>`;
+            container.prepend(item);
+            // ホームの統計 WPM など更新できる場所があればここで
+        }
+    </script>
+</body>
+
+</html>

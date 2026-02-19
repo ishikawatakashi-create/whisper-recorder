@@ -1,0 +1,11 @@
+eel
+sounddevice
+numpy
+scipy
+openai
+keyboard
+python-dotenv
+pystray
+Pillow
+pyautogui
+pyperclip
