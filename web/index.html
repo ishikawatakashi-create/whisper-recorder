@@ -68,15 +68,6 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
-        /* Referral card gradient */
-        .referral-card {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        }
-
-        .affiliate-card {
-            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-        }
-
         /* Scrollbar style */
         ::-webkit-scrollbar {
             width: 5px;
@@ -162,58 +153,43 @@
                 </div>
                 <span class="text-sm font-semibold tracking-tight text-gray-900">Whisper</span>
             </div>
-            <span
-                class="inline-block mt-1 text-[9px] font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">Pro
-                Trial</span>
         </div>
 
         <!-- Nav items -->
         <nav class="flex-1 px-2 space-y-0.5">
             <button onclick="navigate('home')" id="nav-home"
                 class="nav-item active w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
-                <i class="fa-regular fa-house w-4 text-center text-gray-500 text-xs"></i>
+                <i class="fa-solid fa-house w-4 text-center text-gray-500 text-xs"></i>
                 <span class="text-xs">ホーム</span>
             </button>
             <button onclick="navigate('history')" id="nav-history"
                 class="nav-item w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
-                <i class="fa-regular fa-clock-rotate-left w-4 text-center text-gray-500 text-xs"></i>
+                <i class="fa-solid fa-clock-rotate-left w-4 text-center text-gray-500 text-xs"></i>
                 <span class="text-xs">履歴</span>
             </button>
             <button onclick="navigate('dictionary')" id="nav-dictionary"
                 class="nav-item w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
-                <i class="fa-regular fa-book w-4 text-center text-gray-500 text-xs"></i>
+                <i class="fa-solid fa-book w-4 text-center text-gray-500 text-xs"></i>
                 <span class="text-xs">辞書</span>
+            </button>
+            <button onclick="navigate('snippets')" id="nav-snippets"
+                class="nav-item w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
+                <i class="fa-regular fa-rectangle-list w-4 text-center text-gray-500 text-xs"></i>
+                <span class="text-xs">スニペット</span>
             </button>
             <button onclick="navigate('settings')" id="nav-settings"
                 class="nav-item w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-sm text-gray-700">
-                <i class="fa-regular fa-gear w-4 text-center text-gray-500 text-xs"></i>
+                <i class="fa-solid fa-gear w-4 text-center text-gray-500 text-xs"></i>
                 <span class="text-xs">設定</span>
             </button>
         </nav>
 
-        <!-- Upgrade section -->
+        <!-- Bottom icon -->
         <div class="px-2 pb-4">
-            <div class="text-[10px] text-gray-500 font-medium px-1 mb-0.5">Pro Trial</div>
-            <div class="text-[10px] font-semibold text-gray-800 px-1 mb-1">4/30 日使用済み</div>
-            <p class="text-[10px] text-gray-500 px-1 mb-2 leading-tight">
-                トライアルが終了する前にPro版にアップグレード
-            </p>
-            <button
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold rounded-lg py-1.5 transition-colors">
-                アップグレード
-            </button>
-
-            <!-- Bottom icons -->
-            <div class="flex items-center justify-around mt-3 px-1">
-                <button class="text-gray-400 hover:text-gray-600 transition-colors" title="チャット">
-                    <i class="fa-regular fa-comment-dots text-sm"></i>
-                </button>
+            <div class="flex items-center justify-center px-1">
                 <button onclick="navigate('settings')" class="text-gray-400 hover:text-gray-600 transition-colors"
                     title="設定">
-                    <i class="fa-regular fa-gear text-sm"></i>
-                </button>
-                <button class="text-gray-400 hover:text-gray-600 transition-colors" title="アカウント">
-                    <i class="fa-regular fa-circle-user text-sm"></i>
+                    <i class="fa-solid fa-gear text-sm"></i>
                 </button>
             </div>
         </div>
@@ -258,7 +234,7 @@
                             </button>
                         </div>
                         <p class="text-[11px] text-blue-500 hover:underline cursor-pointer mt-3">
-                            <i class="fa-regular fa-lock text-xs mr-1"></i>あなたのデータはプライベートに置かれます
+                            <i class="fa-solid fa-lock text-xs mr-1"></i>あなたのデータはプライベートに置かれます
                         </p>
                     </div>
 
@@ -266,7 +242,7 @@
                     <div class="col-span-1 flex items-center justify-center">
                         <div
                             class="w-20 h-20 rounded-full border-[6px] border-gray-100 flex items-center justify-center">
-                            <i class="fa-regular fa-microphone text-gray-300 text-2xl"></i>
+                            <i class="fa-solid fa-microphone text-gray-300 text-2xl"></i>
                         </div>
                     </div>
 
@@ -298,49 +274,12 @@
                         </div>
                         <div>
                             <div class="flex items-center gap-1 mb-0.5">
-                                <i class="fa-regular fa-gauge-high text-gray-400 text-[10px]"></i>
+                                <i class="fa-solid fa-gauge-high text-gray-400 text-[10px]"></i>
                                 <span class="text-base font-bold text-gray-900">194 <span
                                         class="text-xs font-normal text-gray-400">WPM</span></span>
                             </div>
                             <p class="text-[10px] text-gray-400 leading-tight">平均音声入力速度</p>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Promo cards row -->
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <!-- Referral card -->
-                <div class="referral-card rounded-xl p-4 flex items-center gap-3">
-                    <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-users text-blue-600 text-lg"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-800 mb-0.5">友達を紹介</p>
-                        <p class="text-[11px] text-gray-600">
-                            ゲット <span class="font-bold text-blue-700">$5 クレジット</span> Whisper Proの招待ごとに。
-                        </p>
-                        <button
-                            class="mt-1.5 text-[11px] border border-blue-300 bg-white text-blue-600 rounded-lg px-2.5 py-1 hover:bg-blue-50 transition-colors">
-                            友達を招待
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Affiliate card -->
-                <div class="affiliate-card rounded-xl p-4 flex items-center gap-3">
-                    <div class="w-12 h-12 bg-pink-200 rounded-full flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-hand-holding-dollar text-pink-600 text-lg"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-800 mb-0.5">アフィリエイトプログラム</p>
-                        <p class="text-[11px] text-gray-600">
-                            稼ぐ <span class="font-bold text-pink-700">25%</span> Whisperを共有することで得られる魅力的な報酬。
-                        </p>
-                        <button
-                            class="mt-1.5 text-[11px] border border-pink-300 bg-white text-pink-600 rounded-lg px-2.5 py-1 hover:bg-pink-50 transition-colors">
-                            今すぐ参加
-                        </button>
                     </div>
                 </div>
             </div>
@@ -356,8 +295,8 @@
                             最後のトランスクリプト の
                             <i class="fa-solid fa-chevron-down text-gray-400 text-[9px]"></i>
                         </button>
-                        <button class="text-gray-400 hover:text-gray-600">
-                            <i class="fa-solid fa-xmark text-xs"></i>
+                        <button type="button" class="text-gray-400 hover:text-gray-600" title="閉じる" aria-label="閉じる">
+                            <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
                         </button>
                     </div>
 
@@ -392,15 +331,15 @@
             <!-- Header -->
             <div class="flex items-center justify-between mb-5">
                 <h1 class="text-xl font-semibold text-gray-900">履歴</h1>
-                <button class="text-gray-400 hover:text-gray-600">
-                    <i class="fa-solid fa-ellipsis text-lg"></i>
+                <button type="button" class="text-gray-400 hover:text-gray-600" title="メニュー" aria-label="メニュー">
+                    <i class="fa-solid fa-ellipsis text-lg" aria-hidden="true"></i>
                 </button>
             </div>
 
             <!-- Privacy info -->
             <div class="mb-4 space-y-3">
                 <div class="flex items-start gap-3">
-                    <i class="fa-regular fa-database text-gray-400 mt-0.5 text-sm"></i>
+                    <i class="fa-solid fa-database text-gray-400 mt-0.5 text-sm"></i>
                     <div>
                         <div class="flex items-center gap-3">
                             <p class="text-sm font-medium text-gray-700">履歴を保持</p>
@@ -415,7 +354,7 @@
                     </div>
                 </div>
                 <div class="flex items-start gap-3">
-                    <i class="fa-regular fa-shield-halved text-gray-400 mt-0.5 text-sm"></i>
+                    <i class="fa-solid fa-shield-halved text-gray-400 mt-0.5 text-sm"></i>
                     <div>
                         <p class="text-sm font-medium text-gray-700">データはプライベートに保たれます</p>
                         <p class="text-[11px] text-gray-400 mt-0.5">
@@ -445,7 +384,7 @@
                     <div class="flex items-start gap-2">
                         <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:15 PM</span>
                         <p class="text-xs text-gray-400 italic">音声が落ちます... <i
-                                class="fa-regular fa-circle-info text-[10px]"></i></p>
+                                class="fa-solid fa-circle-info text-[10px]"></i></p>
                     </div>
                 </div>
                 <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
@@ -491,42 +430,113 @@
         <div id="page-dictionary" class="page px-8 py-6 max-w-3xl">
             <!-- Header -->
             <div class="flex items-center justify-between mb-5">
-                <h1 class="text-xl font-semibold text-gray-900">辞書</h1>
-                <button
-                    class="bg-gray-900 hover:bg-gray-700 text-white text-xs font-medium rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5">
-                    <i class="fa-solid fa-plus text-[10px]"></i>
-                    新しい単語
-                </button>
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-900">辞書</h1>
+                    <p class="text-[11px] text-gray-400 mt-0.5">専門用語・固有名詞を登録して音声認識の精度を向上させます</p>
+                </div>
             </div>
 
-            <!-- Filter tabs + search -->
+            <!-- Add word form -->
+            <div class="border border-gray-200 rounded-xl p-4 mb-5">
+                <div class="flex items-end gap-3">
+                    <div class="flex-1">
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">単語 (Word)</label>
+                        <input id="dict-word" type="text" placeholder="例: OpenAI"
+                            class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent" />
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">読み方 (Reading)</label>
+                        <input id="dict-reading" type="text" placeholder="例: おーぷんえーあい"
+                            class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent" />
+                    </div>
+                    <button onclick="addDictionaryWord()"
+                        class="bg-gray-900 hover:bg-gray-700 text-white text-xs font-medium rounded-lg px-4 py-2.5 transition-colors flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        追加
+                    </button>
+                </div>
+            </div>
+
+            <!-- Word list -->
+            <div id="dict-list-container">
+                <!-- Empty state (shown when no words) -->
+                <div id="dict-empty" class="flex flex-col items-center justify-center py-16 text-center">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fa-solid fa-book-open text-gray-300 text-xl"></i>
+                    </div>
+                    <p class="text-sm font-medium text-gray-600 mb-1">まだ単語がありません</p>
+                    <p class="text-[11px] text-gray-400 max-w-xs leading-relaxed">
+                        上のフォームから専門用語や固有名詞を追加すると、音声認識・テキスト整形の精度が向上します。
+                    </p>
+                </div>
+
+                <!-- Table header (hidden when empty) -->
+                <div id="dict-table-header" class="hidden grid grid-cols-12 gap-2 px-3 py-2 text-[11px] font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                    <div class="col-span-5">単語</div>
+                    <div class="col-span-5">読み方</div>
+                    <div class="col-span-2 text-right">操作</div>
+                </div>
+
+                <!-- Word rows -->
+                <div id="dict-list" class="divide-y divide-gray-50"></div>
+            </div>
+        </div>
+
+        <!-- ===== SNIPPETS PAGE ===== -->
+        <div id="page-snippets" class="page px-8 py-6 max-w-3xl">
+            <!-- Header -->
             <div class="flex items-center justify-between mb-5">
-                <div class="flex items-center gap-1.5">
-                    <button
-                        class="text-xs border border-gray-200 rounded-full px-3 py-1 bg-gray-900 text-white font-medium">すべて</button>
-                    <button
-                        class="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-500 hover:bg-gray-50 flex items-center gap-1">
-                        <i class="fa-solid fa-wand-magic-sparkles text-[9px]"></i> 自動追加
-                    </button>
-                    <button
-                        class="text-xs border border-gray-200 rounded-full px-3 py-1 text-gray-500 hover:bg-gray-50 flex items-center gap-1">
-                        <i class="fa-regular fa-pencil text-[9px]"></i> 手動追加
-                    </button>
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-900">スニペット</h1>
+                    <p class="text-[11px] text-gray-400 mt-0.5">キーワードを話すだけで定型文を即座に入力できます（GPTを経由しません）</p>
                 </div>
-                <button class="text-gray-400 hover:text-gray-600">
-                    <i class="fa-regular fa-magnifying-glass text-sm"></i>
-                </button>
             </div>
 
-            <!-- Empty state -->
-            <div class="flex flex-col items-center justify-center py-20 text-center">
-                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                    <i class="fa-regular fa-book-open text-gray-300 text-xl"></i>
+            <!-- Add snippet form -->
+            <div class="border border-gray-200 rounded-xl p-4 mb-5">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">呼び出しキーワード</label>
+                        <input id="snippet-keyword" type="text" placeholder="例: あいさつ"
+                            class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 mb-1">展開する定型文</label>
+                        <textarea id="snippet-text" rows="3" placeholder="例: いつもお世話になっております。株式会社〇〇の△△です。"
+                            class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent resize-y"></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button onclick="addSnippet()"
+                            class="bg-gray-900 hover:bg-gray-700 text-white text-xs font-medium rounded-lg px-4 py-2.5 transition-colors flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            追加
+                        </button>
+                    </div>
                 </div>
-                <p class="text-sm font-medium text-gray-600 mb-1">まだ単語がありません</p>
-                <p class="text-[11px] text-gray-400 max-w-xs leading-relaxed">
-                    Whisperは、あなたのユニークな名前や単語を記憶し、環境から自動的に学習したり、手動でお知らせします。
-                </p>
+            </div>
+
+            <!-- Snippet list -->
+            <div id="snippet-list-container">
+                <!-- Empty state -->
+                <div id="snippet-empty" class="flex flex-col items-center justify-center py-16 text-center">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fa-regular fa-rectangle-list text-gray-300 text-xl"></i>
+                    </div>
+                    <p class="text-sm font-medium text-gray-600 mb-1">まだスニペットがありません</p>
+                    <p class="text-[11px] text-gray-400 max-w-xs leading-relaxed">
+                        キーワードと定型文を登録すると、音声でキーワードを話すだけで定型文が即座に入力されます。
+                    </p>
+                </div>
+
+                <!-- Table header -->
+                <div id="snippet-table-header" class="hidden grid grid-cols-12 gap-2 px-3 py-2 text-[11px] font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                    <div class="col-span-3">キーワード</div>
+                    <div class="col-span-7">定型文</div>
+                    <div class="col-span-2 text-right">操作</div>
+                </div>
+
+                <!-- Snippet rows -->
+                <div id="snippet-list" class="divide-y divide-gray-50"></div>
             </div>
         </div>
 
@@ -537,32 +547,26 @@
                 <div class="w-48 border-r border-gray-100 py-6 px-3 flex flex-col gap-0.5 shrink-0">
                     <button
                         class="settings-list-item active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
-                        onclick="switchSettings(this, 'account')">
-                        <i class="fa-regular fa-circle-user text-gray-400 w-4 text-center text-sm"></i>
-                        アカウント
-                    </button>
-                    <button
-                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
                         onclick="switchSettings(this, 'prefs')">
-                        <i class="fa-regular fa-gear text-gray-400 w-4 text-center text-sm"></i>
+                        <i class="fa-solid fa-gear text-gray-400 w-4 text-center text-sm"></i>
                         設定
                     </button>
                     <button
                         class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
                         onclick="switchSettings(this, 'personalize')">
-                        <i class="fa-regular fa-sliders text-gray-400 w-4 text-center text-sm"></i>
+                        <i class="fa-solid fa-sliders text-gray-400 w-4 text-center text-sm"></i>
                         パーソナライズ
                     </button>
                     <button
                         class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700"
                         onclick="switchSettings(this, 'about')">
-                        <i class="fa-regular fa-circle-info text-gray-400 w-4 text-center text-sm"></i>
+                        <i class="fa-solid fa-circle-info text-gray-400 w-4 text-center text-sm"></i>
                         について
                     </button>
                     <div class="h-px bg-gray-100 my-1"></div>
                     <button
                         class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700">
-                        <i class="fa-regular fa-book text-gray-400 w-4 text-center text-sm"></i>
+                        <i class="fa-solid fa-book text-gray-400 w-4 text-center text-sm"></i>
                         ヘルプセンター
                         <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-300 ml-auto"></i>
                     </button>
@@ -576,41 +580,8 @@
 
                 <!-- Settings content -->
                 <div class="flex-1 px-8 py-6 overflow-y-auto">
-                    <!-- Account panel -->
-                    <div id="settings-account" class="settings-panel">
-                        <h2 class="text-xl font-semibold text-gray-900 mb-6">アカウント</h2>
-
-                        <div class="space-y-5">
-                            <div>
-                                <p class="text-sm font-medium text-gray-700 mb-1">メール</p>
-                                <p class="text-sm text-gray-500">user@example.com</p>
-                            </div>
-
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-700 mb-0.5">サブスクリプション</p>
-                                    <p class="text-sm text-gray-400">Pro Trial</p>
-                                </div>
-                                <button
-                                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl px-4 py-2 transition-colors">
-                                    アップグレード
-                                </button>
-                            </div>
-
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-700">ギフトカード</p>
-                                </div>
-                                <button
-                                    class="border border-gray-200 text-sm text-gray-600 rounded-xl px-4 py-1.5 hover:bg-gray-50 transition-colors">
-                                    購入
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Other panels (hidden by default) -->
-                    <div id="settings-prefs" class="settings-panel hidden">
+                    <!-- Settings panel (default) -->
+                    <div id="settings-prefs" class="settings-panel">
                         <h2 class="text-xl font-semibold text-gray-900 mb-6">設定</h2>
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
@@ -680,7 +651,7 @@
         // ============================================================
         // Navigation
         // ============================================================
-        const PAGES = ['home', 'history', 'dictionary', 'settings'];
+        const PAGES = ['home', 'history', 'dictionary', 'snippets', 'settings'];
 
         function navigate(page) {
             // Update nav active state
@@ -703,6 +674,9 @@
             } else {
                 console.log('[Mock] navigate to:', page);
             }
+
+            if (page === 'dictionary') loadDictionary();
+            if (page === 'snippets') loadSnippets();
         }
 
         // ============================================================
@@ -782,6 +756,156 @@
         </div>`;
             container.prepend(item);
             // ホームの統計 WPM など更新できる場所があればここで
+        }
+
+        // ============================================================
+        // 辞書 (Dictionary) 機能
+        // ============================================================
+        function renderDictionary(entries) {
+            const list = document.getElementById('dict-list');
+            const empty = document.getElementById('dict-empty');
+            const header = document.getElementById('dict-table-header');
+            list.innerHTML = '';
+
+            if (!entries || entries.length === 0) {
+                empty.classList.remove('hidden');
+                header.classList.add('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            header.classList.remove('hidden');
+
+            entries.forEach(entry => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-12 gap-2 px-3 py-2.5 items-center hover:bg-gray-50 rounded-lg transition-colors';
+                const safeWord = entry.word.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeReading = (entry.reading || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                row.innerHTML =
+                    '<div class="col-span-5 text-sm text-gray-800 font-medium truncate">' + safeWord + '</div>' +
+                    '<div class="col-span-5 text-sm text-gray-500 truncate">' + safeReading + '</div>' +
+                    '<div class="col-span-2 text-right">' +
+                    '  <button onclick="deleteDictionaryWord(\'' + safeWord.replace(/'/g, "\\'") + '\')" ' +
+                    '    class="text-gray-300 hover:text-red-500 transition-colors p-1" title="削除">' +
+                    '    <i class="fa-regular fa-trash-can text-sm"></i>' +
+                    '  </button>' +
+                    '</div>';
+                list.appendChild(row);
+            });
+        }
+
+        async function loadDictionary() {
+            if (typeof eel === 'undefined') return;
+            try {
+                const entries = await eel.get_dictionary()();
+                renderDictionary(entries);
+            } catch (e) {
+                console.error('[Dict] load error:', e);
+            }
+        }
+
+        async function addDictionaryWord() {
+            const wordEl = document.getElementById('dict-word');
+            const readingEl = document.getElementById('dict-reading');
+            const word = wordEl.value.trim();
+            const reading = readingEl.value.trim();
+            if (!word) { wordEl.focus(); return; }
+
+            if (typeof eel === 'undefined') return;
+            try {
+                const entries = await eel.add_dictionary_word(word, reading)();
+                renderDictionary(entries);
+                wordEl.value = '';
+                readingEl.value = '';
+                wordEl.focus();
+            } catch (e) {
+                console.error('[Dict] add error:', e);
+            }
+        }
+
+        async function deleteDictionaryWord(word) {
+            if (typeof eel === 'undefined') return;
+            try {
+                const entries = await eel.delete_dictionary_word(word)();
+                renderDictionary(entries);
+            } catch (e) {
+                console.error('[Dict] delete error:', e);
+            }
+        }
+
+        // ============================================================
+        // スニペット (Snippet) 機能
+        // ============================================================
+        function renderSnippets(entries) {
+            const list = document.getElementById('snippet-list');
+            const empty = document.getElementById('snippet-empty');
+            const header = document.getElementById('snippet-table-header');
+            list.innerHTML = '';
+
+            if (!entries || entries.length === 0) {
+                empty.classList.remove('hidden');
+                header.classList.add('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            header.classList.remove('hidden');
+
+            entries.forEach(entry => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-12 gap-2 px-3 py-2.5 items-center hover:bg-gray-50 rounded-lg transition-colors';
+                const safeKw = (entry.keyword || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeText = (entry.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const previewText = safeText.length > 80 ? safeText.substring(0, 80) + '...' : safeText;
+                row.innerHTML =
+                    '<div class="col-span-3 text-sm text-gray-800 font-medium truncate" title="' + safeKw + '">' + safeKw + '</div>' +
+                    '<div class="col-span-7 text-sm text-gray-500 truncate" title="' + safeText.replace(/"/g, '&quot;') + '">' + previewText.replace(/\n/g, ' ') + '</div>' +
+                    '<div class="col-span-2 text-right">' +
+                    '  <button onclick="deleteSnippet(\'' + safeKw.replace(/'/g, "\\'") + '\')" ' +
+                    '    class="text-gray-300 hover:text-red-500 transition-colors p-1" title="削除">' +
+                    '    <i class="fa-regular fa-trash-can text-sm"></i>' +
+                    '  </button>' +
+                    '</div>';
+                list.appendChild(row);
+            });
+        }
+
+        async function loadSnippets() {
+            if (typeof eel === 'undefined') return;
+            try {
+                const entries = await eel.get_snippets()();
+                renderSnippets(entries);
+            } catch (e) {
+                console.error('[Snippet] load error:', e);
+            }
+        }
+
+        async function addSnippet() {
+            const kwEl = document.getElementById('snippet-keyword');
+            const textEl = document.getElementById('snippet-text');
+            const keyword = kwEl.value.trim();
+            const text = textEl.value.trim();
+            if (!keyword) { kwEl.focus(); return; }
+            if (!text) { textEl.focus(); return; }
+
+            if (typeof eel === 'undefined') return;
+            try {
+                const entries = await eel.add_snippet(keyword, text)();
+                renderSnippets(entries);
+                kwEl.value = '';
+                textEl.value = '';
+                kwEl.focus();
+            } catch (e) {
+                console.error('[Snippet] add error:', e);
+            }
+        }
+
+        async function deleteSnippet(keyword) {
+            if (typeof eel === 'undefined') return;
+            try {
+                const entries = await eel.delete_snippet(keyword)();
+                renderSnippets(entries);
+            } catch (e) {
+                console.error('[Snippet] delete error:', e);
+            }
         }
     </script>
 </body>

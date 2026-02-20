@@ -15,9 +15,14 @@ app.py  –  Whisper Recorder  (Eel Desktop App)
 
 from __future__ import annotations
 
+import ctypes
+import errno
 import io
+import json
 import os
+import re
 import sys
+import tempfile
 import threading
 import time
 import wave
@@ -36,22 +41,164 @@ import pystray
 # ------------------------------------------------------------------
 load_dotenv()
 
-SAMPLE_RATE   = 16_000   # Whisper 推奨
-HOTKEY        = "right alt"
-WINDOW_SIZE   = (1024, 680)
+SAMPLE_RATE      = 16_000   # Whisper 推奨
+HOTKEY           = "right alt"
+WINDOW_SIZE      = (1024, 680)
+DICTIONARY_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dictionary.json")
+SNIPPETS_FILE    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "snippets.json")
+_CHROME_DATA_DIR = os.path.join(tempfile.gettempdir(), "whisper_recorder_chrome")
+_MUTEX_NAME      = "Global\\WhisperRecorderSingleInstance"
+
+# ------------------------------------------------------------------
+# 二重起動防止 (Windows Named Mutex)
+# ------------------------------------------------------------------
+_instance_mutex = None
+_ERROR_ALREADY_EXISTS = 183
+
+
+def _acquire_instance_lock() -> bool:
+    """Windows Named Mutex でプロセス単位の排他を実現する。
+    既に別プロセスが Mutex を保持していれば False を返す。"""
+    global _instance_mutex
+    if sys.platform != "win32":
+        return True
+    kernel32 = ctypes.windll.kernel32
+    _instance_mutex = kernel32.CreateMutexW(None, True, _MUTEX_NAME)
+    if kernel32.GetLastError() == _ERROR_ALREADY_EXISTS:
+        kernel32.CloseHandle(_instance_mutex)
+        _instance_mutex = None
+        return False
+    return True
+
+
+# ------------------------------------------------------------------
+# Win32 キー状態ポーリング (AltGr 問題の回避策)
+# ------------------------------------------------------------------
+_VK_MENU     = 0x12   # Alt (generic)
+_VK_LMENU    = 0xA4   # Left Alt
+_VK_RMENU    = 0xA5   # Right Alt
+_VK_RCONTROL = 0xA3   # Right Ctrl
+_ALT_VKS     = (_VK_RMENU, _VK_MENU, _VK_LMENU)
+
+
+def _is_vk_pressed(vk: int) -> bool:
+    """Win32 GetAsyncKeyState で物理キーの押下状態を取得"""
+    if sys.platform != "win32":
+        return False
+    return bool(ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000)
+
+
+def _is_any_alt_pressed() -> bool:
+    """いずれかの Alt 系 VK が押されていれば True"""
+    return any(_is_vk_pressed(vk) for vk in _ALT_VKS)
+
+# ------------------------------------------------------------------
+# カスタム辞書
+# ------------------------------------------------------------------
+
+def _load_dictionary() -> list[dict]:
+    if not os.path.exists(DICTIONARY_FILE):
+        return []
+    try:
+        with open(DICTIONARY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save_dictionary(entries: list[dict]) -> None:
+    with open(DICTIONARY_FILE, "w", encoding="utf-8") as f:
+        json.dump(entries, f, ensure_ascii=False, indent=2)
+
+
+def _get_dictionary_words() -> list[str]:
+    """辞書に登録された word のリストを返す"""
+    return [e["word"] for e in _load_dictionary() if e.get("word")]
+
+
+# ------------------------------------------------------------------
+# スニペット（定型文）
+# ------------------------------------------------------------------
+
+def _load_snippets() -> list[dict]:
+    if not os.path.exists(SNIPPETS_FILE):
+        return []
+    try:
+        with open(SNIPPETS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save_snippets(entries: list[dict]) -> None:
+    with open(SNIPPETS_FILE, "w", encoding="utf-8") as f:
+        json.dump(entries, f, ensure_ascii=False, indent=2)
+
+
+_NORMALIZE_RE = re.compile(r"[\s\u3000、。，．,.!！?？・：:；;…\-\u2010-\u2015\u2212\uff0d\"'()（）「」『』【】\[\]{}]")
+
+
+def _normalize_for_snippet(text: str) -> str:
+    """句読点・空白・記号を除去して小文字化した比較用文字列を返す"""
+    return _NORMALIZE_RE.sub("", text).lower()
+
+
+def _match_snippet(transcript: str) -> str | None:
+    """transcript がスニペットのキーワードと一致すればその定型文を返す"""
+    normalized = _normalize_for_snippet(transcript)
+    if not normalized:
+        return None
+    for entry in _load_snippets():
+        kw = entry.get("keyword", "")
+        if _normalize_for_snippet(kw) == normalized:
+            return entry.get("text", "")
+    return None
+
+
+# ------------------------------------------------------------------
+# 指示プレフィックス検出
+# ------------------------------------------------------------------
+_PREFIX_INSTRUCTIONS: list[tuple[str, str]] = [
+    ("英語にして",       "以下のテキストを自然な英語に翻訳してください。整形した英語のみ出力してください。"),
+    ("英語で",           "以下のテキストを自然な英語に翻訳してください。整形した英語のみ出力してください。"),
+    ("英訳して",         "以下のテキストを自然な英語に翻訳してください。整形した英語のみ出力してください。"),
+    ("箇条書きで",       "以下のテキストを箇条書き形式に変換してください。箇条書きのみ出力してください。"),
+    ("丁寧なメール文にして", "以下のテキストを丁寧なビジネスメール文に変換してください。メール文のみ出力してください。"),
+    ("メール文にして",   "以下のテキストを丁寧なビジネスメール文に変換してください。メール文のみ出力してください。"),
+    ("要約して",         "以下のテキストを簡潔に要約してください。要約のみ出力してください。"),
+    ("敬語にして",       "以下のテキストを丁寧な敬語に変換してください。変換後のテキストのみ出力してください。"),
+    ("カジュアルにして", "以下のテキストをカジュアルな口語体に変換してください。変換後のテキストのみ出力してください。"),
+]
+_PREFIX_SEPARATORS = ("：", ":", "、", "。", " ", "　", ",", ".", "")
+
+
+def _detect_prefix(text: str) -> tuple[str | None, str]:
+    """テキスト冒頭から指示プレフィックスを検出し (instruction, remaining_text) を返す。
+    見つからなければ (None, 元テキスト)。"""
+    stripped = text.strip()
+    for prefix, instruction in _PREFIX_INSTRUCTIONS:
+        for sep in _PREFIX_SEPARATORS:
+            candidate = prefix + sep
+            if stripped.startswith(candidate):
+                remaining = stripped[len(candidate):].strip()
+                if remaining:
+                    return instruction, remaining
+    return None, text
+
 
 # ------------------------------------------------------------------
 # アプリ状態
 # ------------------------------------------------------------------
 _recording     = False
+_rewrite_mode  = False
+_selected_text = ""
 _audio_frames: list[np.ndarray] = []
 _tray_icon: pystray.Icon | None = None
 _eel_window_open = False
 
 # ------------------------------------------------------------------
-# eel 初期化
+# eel 初期化 (main() 内で実行。モジュールレベルだと Windows の再インポートで二重起動する)
 # ------------------------------------------------------------------
-eel.init("web")
 
 
 # ==================================================================
@@ -115,10 +262,14 @@ def _update_tray_icon(recording: bool) -> None:
 
 def _recording_thread() -> None:
     import sounddevice as sd
-    with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32") as stream:
-        while _recording:
-            chunk, _ = stream.read(1024)
-            _audio_frames.append(chunk.copy())
+    try:
+        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32") as stream:
+            while _recording:
+                chunk, _ = stream.read(1024)
+                _audio_frames.append(chunk.copy())
+    except Exception as e:
+        print(f"[App] マイク録音エラー: {e}")
+        _safe_eel_call("js_show_notification", f"❌ マイクエラー: {e}")
 
 
 def _do_start_recording() -> None:
@@ -148,11 +299,122 @@ def _do_stop_recording() -> None:
 
 
 # ==================================================================
+# リライト録音 (right ctrl)
+# ==================================================================
+
+def _do_start_rewrite_recording() -> None:
+    global _recording, _rewrite_mode, _selected_text, _audio_frames
+    if _recording:
+        return
+
+    pyautogui.hotkey("ctrl", "c")
+    time.sleep(0.1)
+    _selected_text = pyperclip.paste()
+    if not _selected_text.strip():
+        print("[App] 選択テキストが空のためリライトを中止")
+        _safe_eel_call("js_show_notification", "⚠️ テキストが選択されていません")
+        return
+
+    _rewrite_mode = True
+    _recording    = True
+    _audio_frames = []
+    print(f"[App] リライト録音開始 (選択テキスト: {_selected_text[:40]}...)")
+    _update_tray_icon(True)
+    _safe_eel_call("js_set_recording_state", True)
+    _safe_eel_call("js_show_notification", "🎙️ 音声指示を録音中...")
+    threading.Thread(target=_recording_thread, daemon=True).start()
+
+
+def _do_stop_rewrite_recording() -> None:
+    global _recording, _rewrite_mode
+    if not _recording:
+        return
+    _recording = False
+    time.sleep(0.15)
+    print("[App] リライト録音停止")
+    _update_tray_icon(False)
+    _safe_eel_call("js_set_recording_state", False)
+    _safe_eel_call("js_show_notification", "⏳ リライト処理中...")
+    threading.Thread(target=_process_rewrite_audio, daemon=True).start()
+
+
+def _process_rewrite_audio() -> None:
+    global _rewrite_mode
+    try:
+        if not _audio_frames:
+            _safe_eel_call("js_show_notification", "❌ 音声が検出されませんでした")
+            return
+
+        instruction = _transcribe()
+        if not instruction:
+            _safe_eel_call("js_show_notification", "❌ 音声指示の文字起こしに失敗しました")
+            return
+        print(f"[Whisper] リライト指示: {instruction}")
+
+        rewritten = _rewrite_with_gpt(_selected_text, instruction)
+        print(f"[GPT]     リライト結果: {rewritten[:80]}")
+
+        pyperclip.copy(rewritten)
+        time.sleep(0.05)
+        pyautogui.hotkey("ctrl", "v")
+
+        preview = rewritten[:50] + ("..." if len(rewritten) > 50 else "")
+        _safe_eel_call("js_show_notification", f"✅ リライト完了: {preview}")
+        _safe_eel_call("js_add_history", rewritten)
+    finally:
+        _rewrite_mode = False
+
+
+def _rewrite_with_gpt(original: str, instruction: str) -> str:
+    """GPT-4o-mini で選択テキストを音声指示に従ってリライト"""
+    from openai import OpenAI
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return original
+
+    system_prompt = (
+        "あなたは優秀なテキスト編集アシスタントです。"
+        "ユーザーから『元のテキスト』と『編集指示』が与えられます。"
+        "指示に従って元のテキストを書き換えてください。"
+        "出力は書き換えられたテキストのみを出力し、説明やコメントは一切含めないでください。"
+    )
+    dict_words = _get_dictionary_words()
+    if dict_words:
+        system_prompt += (
+            "\n以下の専門用語・固有名詞を優先して使用してください: "
+            + ", ".join(dict_words)
+        )
+
+    user_message = (
+        f"【元のテキスト】\n{original}\n\n"
+        f"【編集指示】\n{instruction}"
+    )
+
+    try:
+        client = OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_message},
+            ],
+            max_tokens=2000,
+            temperature=0.3,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"[App] GPT リライトエラー: {e}")
+        return original
+
+
+# ==================================================================
 # 音声処理パイプライン: Whisper → GPT-4o-mini → ペースト
 # ==================================================================
 
 def _process_audio() -> None:
     if not _audio_frames:
+        _safe_eel_call("js_show_notification", "❌ 音声が検出されませんでした")
         return
 
     # ① Whisper で文字起こし
@@ -162,8 +424,23 @@ def _process_audio() -> None:
         return
     print(f"[Whisper] {transcript}")
 
-    # ② GPT-4o-mini でテキスト整形
-    formatted = _format_with_gpt(transcript)
+    # ②-a スニペット判定（完全一致 → GPT スキップ）
+    snippet_text = _match_snippet(transcript)
+    if snippet_text is not None:
+        print(f"[Snippet] キーワード一致 → 定型文を出力")
+        pyperclip.copy(snippet_text)
+        time.sleep(0.05)
+        pyautogui.hotkey("ctrl", "v")
+        preview = snippet_text[:50] + ("..." if len(snippet_text) > 50 else "")
+        _safe_eel_call("js_show_notification", f"📋 スニペット: {preview}")
+        _safe_eel_call("js_add_history", snippet_text)
+        return
+
+    # ②-b プレフィックス検出 → GPT-4o-mini でテキスト整形 or 変換
+    prefix_instruction, body = _detect_prefix(transcript)
+    if prefix_instruction:
+        print(f"[Prefix]  検出: {prefix_instruction[:30]}... body={body[:40]}")
+    formatted = _format_with_gpt(body, prefix_instruction)
     print(f"[GPT]     {formatted}")
 
     # ③ クリップボードにコピー → アクティブウィンドウへペースト
@@ -200,34 +477,50 @@ def _transcribe() -> str | None:
 
     try:
         client = OpenAI(api_key=api_key)
-        resp   = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=buf,
-            language="ja",
-        )
+        whisper_kwargs: dict = dict(model="whisper-1", file=buf, language="ja")
+        dict_words = _get_dictionary_words()
+        if dict_words:
+            whisper_kwargs["prompt"] = ", ".join(dict_words)
+        resp = client.audio.transcriptions.create(**whisper_kwargs)
         return resp.text.strip()
     except Exception as e:
         print(f"[App] Whisper エラー: {e}")
         return None
 
 
-def _format_with_gpt(text: str) -> str:
-    """GPT-4o-mini で音声認識テキストを自然な文章に整形"""
+def _format_with_gpt(text: str, prefix_instruction: str | None = None) -> str:
+    """GPT-4o-mini で音声認識テキストを整形 or 変換する。
+    prefix_instruction が指定されている場合はそれを最優先で適用する。"""
     from openai import OpenAI
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return text
 
-    system_prompt = (
-        "あなたは音声認識テキストの整形AIです。"
-        "入力テキストを以下のルールで整形してください:\n"
-        "1. 不自然な繰り返しや言い間違いを修正\n"
-        "2. 句読点を適切に追加\n"
-        "3. 自然な日本語または英語の文章にする\n"
-        "4. 内容や意味は変えない\n"
-        "5. 整形した文章だけを返す（説明・コメント不要）"
-    )
+    if prefix_instruction:
+        system_prompt = (
+            "あなたは優秀なテキスト変換AIです。\n"
+            "ユーザーから与えられたテキストに対して、以下の指示を適用してください:\n"
+            f"【指示】{prefix_instruction}\n"
+            "出力は変換後のテキストのみを返してください。説明・コメントは一切不要です。"
+        )
+    else:
+        system_prompt = (
+            "あなたは音声認識テキストの整形AIです。\n"
+            "入力テキストを以下のルールで整形してください:\n"
+            "1. 不自然な繰り返しや言い間違いを修正\n"
+            "2. 句読点を適切に追加\n"
+            "3. 自然な日本語または英語の文章にする\n"
+            "4. 内容や意味は変えない\n"
+            "5. 整形した文章だけを返す（説明・コメント不要）"
+        )
+
+    dict_words = _get_dictionary_words()
+    if dict_words:
+        system_prompt += (
+            "\n以下の専門用語・固有名詞を優先して使用してください: "
+            + ", ".join(dict_words)
+        )
 
     try:
         client = OpenAI(api_key=api_key)
@@ -237,31 +530,66 @@ def _format_with_gpt(text: str) -> str:
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": text},
             ],
-            max_tokens=500,
+            max_tokens=2000,
             temperature=0.3,
         )
         return resp.choices[0].message.content.strip()
     except Exception as e:
         print(f"[App] GPT エラー: {e}")
-        return text       # フォールバック: そのまま返す
+        return text
 
 
 # ==================================================================
-# グローバルキーボードフック
+# グローバルキー検出
 # ==================================================================
+
+# デバッグ: WHISPER_DEBUG_KEYS=1 でキーイベントをコンソールに表示
+_DEBUG_KEYS = os.environ.get("WHISPER_DEBUG_KEYS", "").strip().lower() in ("1", "true", "yes")
+
+# Right Alt は keyboard ライブラリの release イベントが Windows で発火しない
+# ケースがあるため、Win32 GetAsyncKeyState による直接ポーリングで検出する。
+_ALT_POLL_INTERVAL = 0.025   # 40Hz
+
+
+def _hotkey_poll_thread() -> None:
+    """Win32 API ポーリングで Right Alt の押下/離しを直接検出する。
+    keyboard ライブラリのフックに依存しない。"""
+    alt_was_pressed = False
+    while True:
+        alt_pressed = _is_any_alt_pressed()
+
+        if alt_pressed and not alt_was_pressed:
+            if _DEBUG_KEYS:
+                states = {f"0x{vk:02X}": _is_vk_pressed(vk) for vk in _ALT_VKS}
+                print(f"[Poll] Alt 押下検出 VK={states}")
+            if not _recording:
+                threading.Thread(target=_do_start_recording, daemon=True).start()
+
+        elif not alt_pressed and alt_was_pressed:
+            if _DEBUG_KEYS:
+                print("[Poll] Alt リリース検出")
+            if _recording and not _rewrite_mode:
+                threading.Thread(target=_do_stop_recording, daemon=True).start()
+
+        alt_was_pressed = alt_pressed
+        time.sleep(_ALT_POLL_INTERVAL)
+
 
 def _setup_keyboard_hooks() -> None:
+    """Right Ctrl のみ keyboard ライブラリで検出（Right Alt はポーリングスレッド）"""
     def on_press(event: keyboard.KeyboardEvent) -> None:
-        if event.name in ("right alt", "alt gr") and not _recording:
-            _do_start_recording()
+        if event.name == "right ctrl" and not _recording:
+            threading.Thread(target=_do_start_rewrite_recording, daemon=True).start()
 
     def on_release(event: keyboard.KeyboardEvent) -> None:
-        if event.name in ("right alt", "alt gr") and _recording:
-            _do_stop_recording()
+        if event.name == "right ctrl" and _recording and _rewrite_mode:
+            threading.Thread(target=_do_stop_rewrite_recording, daemon=True).start()
 
     keyboard.on_press(on_press)
     keyboard.on_release(on_release)
-    print(f"[App] グローバルキーフック設定完了 ({HOTKEY})")
+
+    threading.Thread(target=_hotkey_poll_thread, daemon=True, name="alt-poll").start()
+    print(f"[App] ホットキー検出開始 (Right Alt=Win32ポーリング / Right Ctrl=キーフック)")
 
 
 # ==================================================================
@@ -306,6 +634,52 @@ def stop_recording() -> str:
 
 
 @eel.expose
+def get_dictionary() -> list[dict]:
+    return _load_dictionary()
+
+
+@eel.expose
+def add_dictionary_word(word: str, reading: str) -> list[dict]:
+    entries = _load_dictionary()
+    entries.append({"word": word, "reading": reading})
+    _save_dictionary(entries)
+    print(f"[App] 辞書追加: {word} ({reading})")
+    return entries
+
+
+@eel.expose
+def delete_dictionary_word(word: str) -> list[dict]:
+    entries = _load_dictionary()
+    entries = [e for e in entries if e.get("word") != word]
+    _save_dictionary(entries)
+    print(f"[App] 辞書削除: {word}")
+    return entries
+
+
+@eel.expose
+def get_snippets() -> list[dict]:
+    return _load_snippets()
+
+
+@eel.expose
+def add_snippet(keyword: str, text: str) -> list[dict]:
+    entries = _load_snippets()
+    entries.append({"keyword": keyword, "text": text})
+    _save_snippets(entries)
+    print(f"[App] スニペット追加: {keyword}")
+    return entries
+
+
+@eel.expose
+def delete_snippet(keyword: str) -> list[dict]:
+    entries = _load_snippets()
+    entries = [e for e in entries if e.get("keyword") != keyword]
+    _save_snippets(entries)
+    print(f"[App] スニペット削除: {keyword}")
+    return entries
+
+
+@eel.expose
 def update_hotkey(key: str) -> dict:
     """設定画面からホットキーを変更"""
     global HOTKEY
@@ -333,8 +707,16 @@ def _on_window_close(route: str, websockets: list) -> None:
 # ==================================================================
 
 def main() -> None:
+    if not _acquire_instance_lock():
+        print("[App] 既にアプリが起動しています。二重起動を防止しました。")
+        sys.exit(0)
+
+    eel.init("web")
+
     print("[App] 音声入力ツールを起動しています...")
     print(f"[App] ホットキー: {HOTKEY}  (長押し → 録音、離す → ペースト)")
+    if not _DEBUG_KEYS:
+        print("[App] Right Alt が反応しない場合: 管理者で実行するか、WHISPER_DEBUG_KEYS=1 で起動してキー名を確認")
 
     # タスクトレイをバックグラウンドスレッドで起動
     tray_thread = threading.Thread(target=_start_tray, daemon=True)
@@ -343,14 +725,31 @@ def main() -> None:
     # グローバルキーボードフックを登録
     _setup_keyboard_hooks()
 
-    # Eel ウィンドウを Chrome で起動
-    eel.start(
-        "index.html",
-        mode="chrome",
-        size=WINDOW_SIZE,
-        port=8888,
-        close_callback=_on_window_close,
-    )
+    # Eel ウィンドウを Chrome で起動（8888 が使用中なら別ポートを試す）
+    port = 8888
+    for _ in range(10):
+        try:
+            eel.start(
+                "index.html",
+                mode="chrome",
+                size=WINDOW_SIZE,
+                port=port,
+                close_callback=_on_window_close,
+                cmdline_args=[f"--user-data-dir={_CHROME_DATA_DIR}"],
+            )
+            break
+        except OSError as e:
+            in_use = (
+                getattr(e, "winerror", None) == 10048
+                or getattr(e, "errno", None) == errno.EADDRINUSE
+                or "10048" in str(e)
+                or "Address already in use" in str(e)
+            )
+            if in_use and port < 8898:
+                port += 1
+                print(f"[App] ポート {port - 1} 使用中のため {port} で起動します")
+            else:
+                raise
 
 
 if __name__ == "__main__":
