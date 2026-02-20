@@ -8,8 +8,8 @@ app.py  –  Whisper Recorder  (Eel Desktop App)
     python app.py
 
 動作:
-    - Right Alt 長押し → 録音開始
-    - Right Alt 離す  → Whisper で文字起こし → GPT-4o-mini で整形 → アクティブウィンドウへ自動ペースト
+    - Alt 系ホットキー長押し → 録音開始
+    - Alt 系ホットキー離す   → Whisper で文字起こし → GPT-4o-mini で整形 → アクティブウィンドウへ自動ペースト
     - タスクトレイ常駐で動作継続
 """
 
@@ -46,8 +46,16 @@ HOTKEY           = "right alt"
 WINDOW_SIZE      = (1024, 680)
 DICTIONARY_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dictionary.json")
 SNIPPETS_FILE    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "snippets.json")
+HISTORY_FILE     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "history.json")
+SETTINGS_FILE    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
 _CHROME_DATA_DIR = os.path.join(tempfile.gettempdir(), "whisper_recorder_chrome")
 _MUTEX_NAME      = "Global\\WhisperRecorderSingleInstance"
+
+_DEFAULT_SETTINGS = {
+    "language": "ja",
+    "history_retention_days": 30,
+    "hotkey": "right alt",
+}
 
 # ------------------------------------------------------------------
 # 二重起動防止 (Windows Named Mutex)
@@ -88,9 +96,18 @@ def _is_vk_pressed(vk: int) -> bool:
     return bool(ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000)
 
 
-def _is_any_alt_pressed() -> bool:
-    """いずれかの Alt 系 VK が押されていれば True"""
-    return any(_is_vk_pressed(vk) for vk in _ALT_VKS)
+def _get_hotkey_vks() -> tuple[int, ...]:
+    hotkey = _normalize_hotkey(HOTKEY)
+    if hotkey == "left alt":
+        return (_VK_LMENU,)
+    if hotkey == "either alt":
+        return _ALT_VKS
+    return (_VK_RMENU,)
+
+
+def _is_hotkey_pressed() -> bool:
+    """設定されたホットキーの押下状態を返す"""
+    return any(_is_vk_pressed(vk) for vk in _get_hotkey_vks())
 
 # ------------------------------------------------------------------
 # カスタム辞書
@@ -153,6 +170,132 @@ def _match_snippet(transcript: str) -> str | None:
         if _normalize_for_snippet(kw) == normalized:
             return entry.get("text", "")
     return None
+
+
+# ------------------------------------------------------------------
+# 設定
+# ------------------------------------------------------------------
+
+_SUPPORTED_LANGUAGES = {"ja", "en", "zh"}
+_SUPPORTED_HOTKEYS = {"right alt", "left alt", "either alt"}
+
+
+def _normalize_language(value: str | None) -> str:
+    v = (value or "").strip().lower()
+    if v in _SUPPORTED_LANGUAGES:
+        return v
+    return _DEFAULT_SETTINGS["language"]
+
+
+def _normalize_history_retention_days(value) -> int | None:
+    if value in (None, "", "forever"):
+        return None
+    try:
+        days = int(value)
+    except (TypeError, ValueError):
+        return _DEFAULT_SETTINGS["history_retention_days"]
+    if days <= 0:
+        return None
+    if days in (7, 30):
+        return days
+    return _DEFAULT_SETTINGS["history_retention_days"]
+
+
+def _normalize_hotkey(value: str | None) -> str:
+    v = (value or "").strip().lower()
+    if v in _SUPPORTED_HOTKEYS:
+        return v
+    return _DEFAULT_SETTINGS["hotkey"]
+
+
+def _normalize_settings(raw: dict | None) -> dict:
+    raw = raw if isinstance(raw, dict) else {}
+    return {
+        "language": _normalize_language(raw.get("language")),
+        "history_retention_days": _normalize_history_retention_days(raw.get("history_retention_days")),
+        "hotkey": _normalize_hotkey(raw.get("hotkey")),
+    }
+
+
+def _load_settings() -> dict:
+    if not os.path.exists(SETTINGS_FILE):
+        return dict(_DEFAULT_SETTINGS)
+    try:
+        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return dict(_DEFAULT_SETTINGS)
+    return _normalize_settings(raw)
+
+
+def _save_settings(settings: dict) -> None:
+    normalized = _normalize_settings(settings)
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(normalized, f, ensure_ascii=False, indent=2)
+
+
+# ------------------------------------------------------------------
+# 履歴
+# ------------------------------------------------------------------
+
+def _load_history() -> list[dict]:
+    if not os.path.exists(HISTORY_FILE):
+        return []
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(raw, list):
+        return []
+
+    entries: list[dict] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text", "")).strip()
+        if not text:
+            continue
+        ts = item.get("timestamp")
+        try:
+            ts_value = float(ts)
+        except (TypeError, ValueError):
+            ts_value = time.time()
+        entries.append({"text": text, "timestamp": ts_value})
+    return entries
+
+
+def _save_history(entries: list[dict]) -> None:
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(entries, f, ensure_ascii=False, indent=2)
+
+
+def _apply_history_retention(entries: list[dict]) -> list[dict]:
+    settings = _load_settings()
+    retention_days = settings.get("history_retention_days")
+    if retention_days is None:
+        filtered = entries
+    else:
+        cutoff = time.time() - (int(retention_days) * 24 * 60 * 60)
+        filtered = [e for e in entries if float(e.get("timestamp", 0)) >= cutoff]
+    return sorted(filtered, key=lambda e: float(e.get("timestamp", 0)), reverse=True)
+
+
+def _compact_history() -> list[dict]:
+    compacted = _apply_history_retention(_load_history())
+    _save_history(compacted)
+    return compacted
+
+
+def _append_history(text: str) -> list[dict]:
+    content = text.strip()
+    if not content:
+        return _compact_history()
+    entries = _load_history()
+    entries.append({"text": content, "timestamp": time.time()})
+    compacted = _apply_history_retention(entries)
+    _save_history(compacted)
+    return compacted
 
 
 # ------------------------------------------------------------------
@@ -358,6 +501,7 @@ def _process_rewrite_audio() -> None:
         time.sleep(0.05)
         pyautogui.hotkey("ctrl", "v")
 
+        _append_history(rewritten)
         preview = rewritten[:50] + ("..." if len(rewritten) > 50 else "")
         _safe_eel_call("js_show_notification", f"✅ リライト完了: {preview}")
         _safe_eel_call("js_add_history", rewritten)
@@ -431,6 +575,7 @@ def _process_audio() -> None:
         pyperclip.copy(snippet_text)
         time.sleep(0.05)
         pyautogui.hotkey("ctrl", "v")
+        _append_history(snippet_text)
         preview = snippet_text[:50] + ("..." if len(snippet_text) > 50 else "")
         _safe_eel_call("js_show_notification", f"📋 スニペット: {preview}")
         _safe_eel_call("js_add_history", snippet_text)
@@ -449,6 +594,7 @@ def _process_audio() -> None:
     pyautogui.hotkey("ctrl", "v")
 
     # ④ UI に通知・履歴追加
+    _append_history(formatted)
     preview = formatted[:50] + ("..." if len(formatted) > 50 else "")
     _safe_eel_call("js_show_notification", f"✅ {preview}")
     _safe_eel_call("js_add_history", formatted)
@@ -477,7 +623,8 @@ def _transcribe() -> str | None:
 
     try:
         client = OpenAI(api_key=api_key)
-        whisper_kwargs: dict = dict(model="whisper-1", file=buf, language="ja")
+        language = _load_settings().get("language", _DEFAULT_SETTINGS["language"])
+        whisper_kwargs: dict = dict(model="whisper-1", file=buf, language=language)
         dict_words = _get_dictionary_words()
         if dict_words:
             whisper_kwargs["prompt"] = ", ".join(dict_words)
@@ -546,28 +693,29 @@ def _format_with_gpt(text: str, prefix_instruction: str | None = None) -> str:
 # デバッグ: WHISPER_DEBUG_KEYS=1 でキーイベントをコンソールに表示
 _DEBUG_KEYS = os.environ.get("WHISPER_DEBUG_KEYS", "").strip().lower() in ("1", "true", "yes")
 
-# Right Alt は keyboard ライブラリの release イベントが Windows で発火しない
-# ケースがあるため、Win32 GetAsyncKeyState による直接ポーリングで検出する。
+# Alt 系ホットキーは keyboard ライブラリの release イベントが Windows で
+# 取りこぼされるケースがあるため、Win32 GetAsyncKeyState で直接ポーリングする。
 _ALT_POLL_INTERVAL = 0.025   # 40Hz
 
 
 def _hotkey_poll_thread() -> None:
-    """Win32 API ポーリングで Right Alt の押下/離しを直接検出する。
+    """Win32 API ポーリングで Alt 系ホットキーの押下/離しを直接検出する。
     keyboard ライブラリのフックに依存しない。"""
     alt_was_pressed = False
     while True:
-        alt_pressed = _is_any_alt_pressed()
+        alt_pressed = _is_hotkey_pressed()
 
         if alt_pressed and not alt_was_pressed:
             if _DEBUG_KEYS:
-                states = {f"0x{vk:02X}": _is_vk_pressed(vk) for vk in _ALT_VKS}
-                print(f"[Poll] Alt 押下検出 VK={states}")
+                vks = _get_hotkey_vks()
+                states = {f"0x{vk:02X}": _is_vk_pressed(vk) for vk in vks}
+                print(f"[Poll] Hotkey 押下検出 key={HOTKEY} VK={states}")
             if not _recording:
                 threading.Thread(target=_do_start_recording, daemon=True).start()
 
         elif not alt_pressed and alt_was_pressed:
             if _DEBUG_KEYS:
-                print("[Poll] Alt リリース検出")
+                print(f"[Poll] Hotkey リリース検出 key={HOTKEY}")
             if _recording and not _rewrite_mode:
                 threading.Thread(target=_do_stop_recording, daemon=True).start()
 
@@ -576,7 +724,7 @@ def _hotkey_poll_thread() -> None:
 
 
 def _setup_keyboard_hooks() -> None:
-    """Right Ctrl のみ keyboard ライブラリで検出（Right Alt はポーリングスレッド）"""
+    """Right Ctrl のみ keyboard ライブラリで検出（Alt 系ホットキーはポーリング）"""
     def on_press(event: keyboard.KeyboardEvent) -> None:
         if event.name == "right ctrl" and not _recording:
             threading.Thread(target=_do_start_rewrite_recording, daemon=True).start()
@@ -589,7 +737,7 @@ def _setup_keyboard_hooks() -> None:
     keyboard.on_release(on_release)
 
     threading.Thread(target=_hotkey_poll_thread, daemon=True, name="alt-poll").start()
-    print(f"[App] ホットキー検出開始 (Right Alt=Win32ポーリング / Right Ctrl=キーフック)")
+    print(f"[App] ホットキー検出開始 ({HOTKEY}=Win32ポーリング / Right Ctrl=キーフック)")
 
 
 # ==================================================================
@@ -622,15 +770,13 @@ def on_history_select(text: str) -> dict:
 
 
 @eel.expose
-def start_recording() -> None:
-    """スペースキーなど JS から呼ぶ場合用（グローバルフックと併用可）"""
-    _do_start_recording()
+def get_history() -> list[dict]:
+    return _compact_history()
 
 
 @eel.expose
-def stop_recording() -> str:
-    _do_stop_recording()
-    return ""
+def get_settings() -> dict:
+    return _load_settings()
 
 
 @eel.expose
@@ -681,11 +827,35 @@ def delete_snippet(keyword: str) -> list[dict]:
 
 @eel.expose
 def update_hotkey(key: str) -> dict:
-    """設定画面からホットキーを変更"""
     global HOTKEY
-    HOTKEY = key
-    print(f"[App] ホットキー変更: {key}")
-    return {"status": "ok"}
+    settings = _load_settings()
+    HOTKEY = _normalize_hotkey(key)
+    settings["hotkey"] = HOTKEY
+    _save_settings(settings)
+    print(f"[App] ホットキー変更: {HOTKEY}")
+    return {"status": "ok", "hotkey": HOTKEY}
+
+
+@eel.expose
+def update_language(language: str) -> dict:
+    settings = _load_settings()
+    normalized = _normalize_language(language)
+    settings["language"] = normalized
+    _save_settings(settings)
+    print(f"[App] 音声認識言語を変更: {normalized}")
+    return {"status": "ok", "language": normalized}
+
+
+@eel.expose
+def update_history_retention(days) -> dict:
+    settings = _load_settings()
+    normalized = _normalize_history_retention_days(days)
+    settings["history_retention_days"] = normalized
+    _save_settings(settings)
+    compacted = _compact_history()
+    label = "forever" if normalized is None else str(normalized)
+    print(f"[App] 履歴保持期間を変更: {label}")
+    return {"status": "ok", "history_retention_days": normalized, "history_count": len(compacted)}
 
 
 # ==================================================================
@@ -707,16 +877,22 @@ def _on_window_close(route: str, websockets: list) -> None:
 # ==================================================================
 
 def main() -> None:
+    global HOTKEY
     if not _acquire_instance_lock():
         print("[App] 既にアプリが起動しています。二重起動を防止しました。")
         sys.exit(0)
+
+    settings = _load_settings()
+    HOTKEY = _normalize_hotkey(settings.get("hotkey"))
+    _save_settings(settings)
+    _compact_history()
 
     eel.init("web")
 
     print("[App] 音声入力ツールを起動しています...")
     print(f"[App] ホットキー: {HOTKEY}  (長押し → 録音、離す → ペースト)")
     if not _DEBUG_KEYS:
-        print("[App] Right Alt が反応しない場合: 管理者で実行するか、WHISPER_DEBUG_KEYS=1 で起動してキー名を確認")
+        print("[App] Alt キーが反応しない場合: 管理者で実行するか、WHISPER_DEBUG_KEYS=1 で起動してキー名を確認")
 
     # タスクトレイをバックグラウンドスレッドで起動
     tray_thread = threading.Thread(target=_start_tray, daemon=True)

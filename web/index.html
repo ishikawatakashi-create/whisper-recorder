@@ -208,11 +208,11 @@
                     <h1 class="text-2xl font-semibold text-gray-900 leading-tight">自然に話し、完璧に書く - どのアプリでも</h1>
                     <p class="text-sm text-gray-500 mt-1">
                         キーを押し続けて <kbd
+                            id="home-hotkey-hint"
                             class="bg-gray-100 border border-gray-200 rounded px-1 py-0.5 text-xs font-mono">Right
                             Alt</kbd> 話し、放して生声テキストを挿入します。
                     </p>
                 </div>
-                <button class="text-xs text-blue-500 hover:underline whitespace-nowrap mt-1">人気の使用例 ›</button>
             </div>
 
             <!-- Stats card -->
@@ -226,12 +226,6 @@
                                 <span class="text-xl font-bold text-gray-900">0%</span>
                             </div>
                             <p class="text-[11px] text-gray-400">全体のパーソナライズ</p>
-                        </div>
-                        <div class="mt-3">
-                            <button
-                                class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors">
-                                レポートを見る
-                            </button>
                         </div>
                         <p class="text-[11px] text-blue-500 hover:underline cursor-pointer mt-3">
                             <i class="fa-solid fa-lock text-xs mr-1"></i>あなたのデータはプライベートに置かれます
@@ -284,45 +278,9 @@
                 </div>
             </div>
 
-            <!-- Feedback section -->
-            <div>
-                <h2 class="text-sm font-semibold text-gray-700 mb-2">フィードバックを送信</h2>
-                <div class="border border-gray-200 rounded-xl p-4">
-                    <!-- Transcript selector -->
-                    <div class="flex items-center justify-between mb-2">
-                        <button class="text-[11px] text-gray-600 flex items-center gap-1 hover:text-gray-800">
-                            <i class="fa-regular fa-file-lines text-gray-400"></i>
-                            最後のトランスクリプト の
-                            <i class="fa-solid fa-chevron-down text-gray-400 text-[9px]"></i>
-                        </button>
-                        <button type="button" class="text-gray-400 hover:text-gray-600" title="閉じる" aria-label="閉じる">
-                            <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
-                        </button>
-                    </div>
-
-                    <!-- Transcript preview -->
-                    <div class="bg-gray-50 rounded-lg px-3 py-2 mb-3">
-                        <p class="text-xs text-gray-500 italic">Mo...</p>
-                    </div>
-
-                    <!-- Feedback textarea -->
-                    <textarea
-                        class="w-full text-xs text-gray-500 border-0 focus:outline-none resize-none bg-transparent"
-                        rows="3" placeholder="このトランスクリプトはどう改善できますか？ヒント：時間を節約するためにフィードバックを話すことができます。"></textarea>
-
-                    <!-- Submit -->
-                    <div class="flex justify-end mt-2">
-                        <button class="text-xs bg-gray-100 text-gray-400 rounded-lg px-3 py-1.5 cursor-not-allowed">
-                            フィードバックを送信
-                        </button>
-                    </div>
-                </div>
-            </div>
-
             <!-- Version footer -->
             <p class="text-[10px] text-gray-300 mt-6 text-center">
-                バージョン v0.5.0 &nbsp;
-                <a href="#" class="hover:underline">設定を表示</a>
+                バージョン v0.5.0
             </p>
         </div>
 
@@ -331,9 +289,6 @@
             <!-- Header -->
             <div class="flex items-center justify-between mb-5">
                 <h1 class="text-xl font-semibold text-gray-900">履歴</h1>
-                <button type="button" class="text-gray-400 hover:text-gray-600" title="メニュー" aria-label="メニュー">
-                    <i class="fa-solid fa-ellipsis text-lg" aria-hidden="true"></i>
-                </button>
             </div>
 
             <!-- Privacy info -->
@@ -343,11 +298,11 @@
                     <div>
                         <div class="flex items-center gap-3">
                             <p class="text-sm font-medium text-gray-700">履歴を保持</p>
-                            <select
+                            <select id="history-retention" onchange="saveHistoryRetention(this.value)"
                                 class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 bg-white focus:outline-none">
-                                <option>永遠に</option>
-                                <option>30日間</option>
-                                <option>7日間</option>
+                                <option value="forever">永遠に</option>
+                                <option value="30">30日間</option>
+                                <option value="7">7日間</option>
                             </select>
                         </div>
                         <p class="text-[11px] text-gray-400 mt-0.5">デバイスに音声入力履歴をどのくらい保持したいですか？</p>
@@ -363,67 +318,11 @@
                 </div>
             </div>
 
-            <p class="text-xs font-medium text-gray-400 mb-2">今日</p>
-
-            <!-- History items -->
-            <div class="space-y-0 divide-y divide-gray-100">
-                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
-                    <div class="flex items-start gap-2">
-                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:15 PM</span>
-                        <p class="text-xs text-gray-700 leading-relaxed line-clamp-3">
-                            Mount Fuji, the highest peak in Japan, is a sacred presence for the Japanese people.
-                            Since ancient times, it has exerted a profound influence on the Japanese view of nature as
-                            an
-                            "object of faith." Due to its history of repeated volcanic activity, the mountain became a
-                            focal point for "Yohai"—the practice of worshipping the summit from afar by looking up from
-                            the foot of the mountain.
-                        </p>
-                    </div>
-                </div>
-                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
-                    <div class="flex items-start gap-2">
-                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:15 PM</span>
-                        <p class="text-xs text-gray-400 italic">音声が落ちます... <i
-                                class="fa-solid fa-circle-info text-[10px]"></i></p>
-                    </div>
-                </div>
-                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
-                    <div class="flex items-start gap-2">
-                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:15 PM</span>
-                        <p class="text-xs text-blue-600 leading-relaxed line-clamp-3">
-                            Dear Anna, I am writing to inform you that my contact information has changed.
-                            My new phone number is (408) 123 4567. Please update your records accordingly to ensure
-                            we can stay in touch. Thank you, and please let me know if you have any questions.
-                            Best regards, Jack
-                        </p>
-                    </div>
-                </div>
-                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
-                    <div class="flex items-start gap-2">
-                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:14 PM</span>
-                        <p class="text-xs text-gray-700">How about you?</p>
-                    </div>
-                </div>
-                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
-                    <div class="flex items-start gap-2">
-                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:14 PM</span>
-                        <p class="text-xs text-blue-600">How about we meet tomorrow at 3 p.m. for a coffee meeting?</p>
-                    </div>
-                </div>
-                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
-                    <div class="flex items-start gap-2">
-                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:14 PM</span>
-                        <p class="text-xs text-blue-600">Just a quick note to let you know that my new phone number is
-                            (408) 123-1067. Thanks, Jack</p>
-                    </div>
-                </div>
-                <div class="history-item py-2.5 px-2 rounded-lg cursor-pointer" onclick="selectHistory(this)">
-                    <div class="flex items-start gap-2">
-                        <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">08:13 PM</span>
-                        <p class="text-xs text-blue-600">My Shopping List: 1. Bananas 2. Oat milk 3. Dark chocolate</p>
-                    </div>
-                </div>
+            <p class="text-xs font-medium text-gray-400 mb-2">保存済み履歴</p>
+            <div id="history-empty" class="hidden py-8 text-center text-xs text-gray-400">
+                まだ履歴がありません
             </div>
+            <div id="history-list" class="space-y-0 divide-y divide-gray-100"></div>
         </div>
 
         <!-- ===== DICTIONARY PAGE ===== -->
@@ -563,19 +462,6 @@
                         <i class="fa-solid fa-circle-info text-gray-400 w-4 text-center text-sm"></i>
                         について
                     </button>
-                    <div class="h-px bg-gray-100 my-1"></div>
-                    <button
-                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700">
-                        <i class="fa-solid fa-book text-gray-400 w-4 text-center text-sm"></i>
-                        ヘルプセンター
-                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-300 ml-auto"></i>
-                    </button>
-                    <button
-                        class="settings-list-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-gray-700">
-                        <i class="fa-regular fa-file-lines text-gray-400 w-4 text-center text-sm"></i>
-                        リリースノート
-                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-gray-300 ml-auto"></i>
-                    </button>
                 </div>
 
                 <!-- Settings content -->
@@ -586,35 +472,26 @@
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-sm font-medium text-gray-700">起動時に開く</p>
-                                    <p class="text-xs text-gray-400 mt-0.5">アプリ起動時に自動的に開始します</p>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer" checked>
-                                    <div
-                                        class="w-9 h-5 bg-blue-600 peer-checked:bg-blue-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:w-4 after:h-4 after:transition-all peer-checked:after:translate-x-4">
-                                    </div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div>
                                     <p class="text-sm font-medium text-gray-700">ショートカットキー</p>
                                     <p class="text-xs text-gray-400 mt-0.5">音声入力を開始するキー</p>
                                 </div>
-                                <kbd
-                                    class="bg-gray-100 border border-gray-200 rounded-lg px-2 py-1 text-xs font-mono text-gray-600">Right
-                                    Alt</kbd>
+                                <select id="setting-hotkey" onchange="updateHotkey(this.value)"
+                                    class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                    <option value="right alt">Right Alt</option>
+                                    <option value="left alt">Left Alt</option>
+                                    <option value="either alt">Left/Right Alt</option>
+                                </select>
                             </div>
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-gray-700">言語</p>
                                     <p class="text-xs text-gray-400 mt-0.5">音声認識の言語</p>
                                 </div>
-                                <select
+                                <select id="setting-language" onchange="updateLanguage(this.value)"
                                     class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                    <option>日本語</option>
-                                    <option>English</option>
-                                    <option>中文</option>
+                                    <option value="ja">日本語</option>
+                                    <option value="en">English</option>
+                                    <option value="zh">中文</option>
                                 </select>
                             </div>
                         </div>
@@ -675,22 +552,105 @@
                 console.log('[Mock] navigate to:', page);
             }
 
+            if (page === 'history') loadHistory();
             if (page === 'dictionary') loadDictionary();
             if (page === 'snippets') loadSnippets();
+            if (page === 'settings') loadSettings();
+        }
+
+        // ============================================================
+        // Utils
+        // ============================================================
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatHistoryTime(timestampSec) {
+            const ts = Number(timestampSec || 0) * 1000;
+            if (!Number.isFinite(ts) || ts <= 0) return '--:--';
+            return new Date(ts).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function hotkeyLabel(value) {
+            if (value === 'left alt') return 'Left Alt';
+            if (value === 'either alt') return 'Left/Right Alt';
+            return 'Right Alt';
+        }
+
+        function updateHomeHotkeyHint(value) {
+            const hint = document.getElementById('home-hotkey-hint');
+            if (hint) hint.textContent = hotkeyLabel(value);
         }
 
         // ============================================================
         // Settings sub-navigation
         // ============================================================
         function switchSettings(btn, panel) {
-            // Active state on sidebar buttons
             document.querySelectorAll('.settings-list-item').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
-
-            // Show/hide panels
             document.querySelectorAll('.settings-panel').forEach(el => el.classList.add('hidden'));
             const target = document.getElementById('settings-' + panel);
             if (target) target.classList.remove('hidden');
+        }
+
+        async function loadSettings() {
+            if (typeof eel === 'undefined') return;
+            try {
+                const settings = await eel.get_settings()();
+                const hotkey = document.getElementById('setting-hotkey');
+                const language = document.getElementById('setting-language');
+                const retention = document.getElementById('history-retention');
+                if (hotkey) hotkey.value = settings.hotkey || 'right alt';
+                updateHomeHotkeyHint(settings.hotkey || 'right alt');
+                if (language) language.value = settings.language || 'ja';
+                if (retention) {
+                    retention.value = settings.history_retention_days == null
+                        ? 'forever'
+                        : String(settings.history_retention_days);
+                }
+            } catch (e) {
+                console.error('[Settings] load error:', e);
+            }
+        }
+
+        async function updateHotkey(value) {
+            if (typeof eel === 'undefined') return;
+            try {
+                const result = await eel.update_hotkey(value)();
+                if (result?.hotkey) {
+                    const hotkey = document.getElementById('setting-hotkey');
+                    if (hotkey) hotkey.value = result.hotkey;
+                    updateHomeHotkeyHint(result.hotkey);
+                }
+            } catch (e) {
+                console.error('[Settings] hotkey update error:', e);
+            }
+        }
+
+        async function updateLanguage(value) {
+            if (typeof eel === 'undefined') return;
+            try {
+                await eel.update_language(value)();
+            } catch (e) {
+                console.error('[Settings] language update error:', e);
+            }
+        }
+
+        async function saveHistoryRetention(value) {
+            if (typeof eel === 'undefined') return;
+            const payload = value === 'forever' ? null : parseInt(value, 10);
+            try {
+                await eel.update_history_retention(payload)();
+                await loadHistory();
+                await loadSettings();
+            } catch (e) {
+                console.error('[History] retention update error:', e);
+            }
         }
 
         // ============================================================
@@ -705,6 +665,41 @@
                 eel.on_history_select(text)(function (result) {
                     console.log('[Eel] on_history_select response:', result);
                 });
+            }
+        }
+
+        function renderHistory(entries) {
+            const list = document.getElementById('history-list');
+            const empty = document.getElementById('history-empty');
+            if (!list || !empty) return;
+            list.innerHTML = '';
+
+            if (!entries || entries.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            entries.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'history-item py-2.5 px-2 rounded-lg cursor-pointer';
+                item.onclick = function () { selectHistory(this); };
+                item.innerHTML = `
+        <div class="flex items-start gap-2">
+          <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">${formatHistoryTime(entry.timestamp)}</span>
+          <p class="text-xs text-gray-700 leading-relaxed line-clamp-3">${escapeHtml(entry.text)}</p>
+        </div>`;
+                list.appendChild(item);
+            });
+        }
+
+        async function loadHistory() {
+            if (typeof eel === 'undefined') return;
+            try {
+                const entries = await eel.get_history()();
+                renderHistory(entries);
+            } catch (e) {
+                console.error('[History] load error:', e);
             }
         }
 
@@ -737,25 +732,11 @@
         }
 
         // ============================================================
-        // Python → JS : 履歴に1件追加
+        // Python → JS : 履歴更新通知
         // ============================================================
         eel.expose(js_add_history);
-        function js_add_history(text) {
-            // 履歴ページに動的に追加
-            const container = document.querySelector('#page-history .divide-y');
-            if (!container) return;
-            const now = new Date();
-            const hm = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-            const item = document.createElement('div');
-            item.className = 'history-item py-2.5 px-2 rounded-lg cursor-pointer';
-            item.onclick = function () { selectHistory(this); };
-            item.innerHTML = `
-        <div class="flex items-start gap-2">
-          <span class="text-[10px] text-gray-400 mt-0.5 w-10 shrink-0">${hm}</span>
-          <p class="text-xs text-gray-700 leading-relaxed">${text}</p>
-        </div>`;
-            container.prepend(item);
-            // ホームの統計 WPM など更新できる場所があればここで
+        function js_add_history(_text) {
+            loadHistory();
         }
 
         // ============================================================
@@ -907,6 +888,10 @@
                 console.error('[Snippet] delete error:', e);
             }
         }
+
+        // 初期化（ホーム表示中でも設定値と履歴は先に読み込む）
+        loadSettings();
+        loadHistory();
     </script>
 </body>
 
